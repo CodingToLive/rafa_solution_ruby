@@ -14,6 +14,6 @@ class RateApiClient
         }
       ]
     }.to_json
-    self.post("/pricing", body: params)
+    self.post("/pricing", body: params, timeout: 10)
   end
 end
