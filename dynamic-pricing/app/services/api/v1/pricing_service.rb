@@ -19,10 +19,10 @@ module Api::V1
       end
       rate = RateApiClient.get_rate(period: @period, hotel: @hotel, room: @room)
       if rate.success?
-        parsed_rate = JSON.parse(rate.body)
+        parsed_rate = rate.parsed_response
         value = parsed_rate['rates'].detect { |r| r['period'] == @period && r['hotel'] == @hotel && r['room'] == @room }&.dig('rate')
-        @result = value
-        Rails.cache.write(key, value, expires_in: 5.minutes)
+        @result = value.to_i
+        Rails.cache.write(key, value.to_i, expires_in: 5.minutes)
       else
         errors << rate.body['error']
       end

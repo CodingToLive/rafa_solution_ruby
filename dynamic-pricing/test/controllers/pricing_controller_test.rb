@@ -6,13 +6,13 @@ class Api::V1::PricingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get pricing with all parameters" do
-    mock_body = {
+    mock_parsed = {
       'rates' => [
         { 'period' => 'Summer', 'hotel' => 'FloatingPointResort', 'room' => 'SingletonRoom', 'rate' => '15000' }
       ]
-    }.to_json
+    }
 
-    mock_response = OpenStruct.new(success?: true, body: mock_body)
+    mock_response = OpenStruct.new(success?: true, parsed_response: mock_parsed)
 
     RateApiClient.stub(:get_rate, mock_response) do
       get api_v1_pricing_url, params: {
@@ -25,7 +25,7 @@ class Api::V1::PricingControllerTest < ActionDispatch::IntegrationTest
       assert_equal "application/json", @response.media_type
 
       json_response = JSON.parse(@response.body)
-      assert_equal "15000", json_response["rate"]
+      assert_equal 15000, json_response["rate"]
     end
   end
 
@@ -114,13 +114,13 @@ class Api::V1::PricingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should fetch cache response" do
-    mock_body = {
+    mock_parsed = {
       'rates' => [
         { 'period' => 'Summer', 'hotel' => 'FloatingPointResort', 'room' => 'SingletonRoom', 'rate' => '15000' }
       ]
-    }.to_json
+    }
 
-    mock_response = OpenStruct.new(success?: true, body: mock_body)
+    mock_response = OpenStruct.new(success?: true, parsed_response: mock_parsed)
 
     RateApiClient.stub(:get_rate, mock_response) do
       get api_v1_pricing_url, params: {
@@ -133,10 +133,10 @@ class Api::V1::PricingControllerTest < ActionDispatch::IntegrationTest
       assert_equal "application/json", @response.media_type
 
       json_response = JSON.parse(@response.body)
-      assert_equal "15000", json_response["rate"]
+      assert_equal 15000, json_response["rate"]
 
       cache_value = Rails.cache.read("pricing:rate:v1:period=Summer:hotel=FloatingPointResort:room=SingletonRoom")
-      assert_equal "15000", cache_value
+      assert_equal 15000, cache_value
     end
   end
 end
