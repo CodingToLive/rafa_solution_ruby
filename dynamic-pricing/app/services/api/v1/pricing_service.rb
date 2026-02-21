@@ -11,14 +11,12 @@ module Api::V1
     end
 
     def run
-      # TODO: Start to implement here
       key = cache_key
       cached_value = Rails.cache.read(key)
       if cached_value
         @result = cached_value
         return
       end
-      printf(key)
       rate = RateApiClient.get_rate(period: @period, hotel: @hotel, room: @room)
       if rate.success?
         parsed_rate = JSON.parse(rate.body)
