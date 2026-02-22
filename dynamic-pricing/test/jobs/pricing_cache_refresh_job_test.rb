@@ -56,11 +56,13 @@ class PricingCacheRefreshJobTest < ActiveJob::TestCase
     assert_kind_of Integer, cached
   end
 
-  test "API error does not cache anything" do
+  test "API error enqueues retry and does not cache anything" do
     mock_response = OpenStruct.new(success?: false, parsed_response: { 'error' => 'server error' })
 
     RateApiClient.stub(:get_all_rates, mock_response) do
-      PricingCacheRefreshJob.perform_now
+      assert_enqueued_with(job: PricingCacheRefreshJob) do
+        PricingCacheRefreshJob.perform_now
+      end
     end
 
     PricingConstants::ALL_COMBINATIONS.each do |combo|
@@ -83,7 +85,7 @@ class PricingCacheRefreshJobTest < ActiveJob::TestCase
   end
 
   test "quota exceeded skips API call" do
-    PricingUpstreamBudget.stub(:consume!, ->(*) { raise PricingUpstreamBudget::QuotaExceeded, "over limit" }) do
+    PricingUpstreamBudget.stub(:check_quota!, ->(*) { raise PricingUpstreamBudget::QuotaExceeded, "over limit" }) do
       PricingCacheRefreshJob.perform_now
     end
 

@@ -1,8 +1,10 @@
 class PricingCacheRefreshJob < ApplicationJob
   include PricingConstants
 
+  class UpstreamError < StandardError; end
+
   queue_as :default
-  retry_on StandardError, wait: 30.seconds, attempts: 3
+  retry_on StandardError, wait: 20.seconds, attempts: 3
 
   TTL = 5.minutes
 
@@ -15,8 +17,7 @@ class PricingCacheRefreshJob < ApplicationJob
     response = RateApiClient.get_all_rates
 
     unless response.success?
-      AppLog.warn(source: "PricingCacheRefreshJob", event: "upstream_error", error: safe_error(response))
-      return
+      raise UpstreamError, "Upstream API error: #{safe_error(response)}"
     end
 
     current_quota = ::PricingUpstreamBudget.consume!(amount: 1)
