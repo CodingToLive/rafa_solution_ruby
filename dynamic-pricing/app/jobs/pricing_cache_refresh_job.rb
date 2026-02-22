@@ -7,16 +7,16 @@ class PricingCacheRefreshJob < ApplicationJob
 
   def perform
     start_time = Time.current
-    Rails.logger.info("[PricingCacheRefreshJob] START at #{start_time}")
+    AppLog.info(source: "PricingCacheRefreshJob", event: "start")
 
     # 1 upstream batch call
     current_quota = ::PricingUpstreamBudget.consume!(amount: 1)
-    Rails.logger.info("[PricingCacheRefreshJob] Consumed quota. Current usage today: #{current_quota}")
+    AppLog.info(source: "PricingCacheRefreshJob", event: "quota_consumed", usage_today: current_quota)
 
     response = RateApiClient.get_all_rates
 
     unless response.success?
-      Rails.logger.warn("[PricingCacheRefreshJob] Upstream error: #{safe_error(response)}")
+      AppLog.warn(source: "PricingCacheRefreshJob", event: "upstream_error", error: safe_error(response))
       return
     end
 
@@ -24,7 +24,7 @@ class PricingCacheRefreshJob < ApplicationJob
     rates  = parsed.is_a?(Hash) ? parsed["rates"] : nil
 
     unless rates.is_a?(Array)
-      Rails.logger.warn("[PricingCacheRefreshJob] Invalid payload format")
+      AppLog.warn(source: "PricingCacheRefreshJob", event: "invalid_payload")
       return
     end
 
@@ -41,14 +41,12 @@ class PricingCacheRefreshJob < ApplicationJob
 
     duration = ((Time.current - start_time) * 1000).round(1)
 
-    Rails.logger.info(
-      "[PricingCacheRefreshJob] SUCCESS - Cached #{written} rates in #{duration}ms"
-    )
+    AppLog.info(source: "PricingCacheRefreshJob", event: "success", cached_rates: written, duration_ms: duration)
 
   rescue PricingUpstreamBudget::QuotaExceeded => e
-    Rails.logger.warn("[PricingCacheRefreshJob] SKIPPED - Quota exceeded: #{e.message}")
+    AppLog.warn(source: "PricingCacheRefreshJob", event: "quota_exceeded", error: e.message)
   rescue => e
-    Rails.logger.error("[PricingCacheRefreshJob] CRASH - #{e.class}: #{e.message}")
+    AppLog.error(source: "PricingCacheRefreshJob", event: "crash", error_class: e.class.name, error: e.message)
     raise
   end
 

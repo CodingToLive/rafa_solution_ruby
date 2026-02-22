@@ -10,12 +10,12 @@ module Api::V1
       key = PricingConstants.cache_key(period: @period, hotel: @hotel, room: @room)
       cached_value = Rails.cache.read(key)
       if cached_value
-        Rails.logger.info("[PricingService] CACHE HIT for #{key}")
+        AppLog.info(source: "PricingService", event: "cache_hit", key: key)
         @result = cached_value
         return
       end
 
-      Rails.logger.info("[PricingService] CACHE MISS for #{key} - calling upstream API")
+      AppLog.info(source: "PricingService", event: "cache_miss", key: key)
       response = RateApiClient.get_rate(period: @period, hotel: @hotel, room: @room)
 
       unless response.success?
