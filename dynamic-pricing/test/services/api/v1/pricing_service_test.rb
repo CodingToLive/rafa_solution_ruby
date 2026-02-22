@@ -83,7 +83,7 @@ class Api::V1::PricingServiceTest < ActiveSupport::TestCase
 
       assert_not service.valid?
       assert_equal :bad_gateway, service.error_status
-      assert_includes service.errors.first, "incomplete response"
+      assert_includes service.errors.first, "no rates"
     end
   end
 
@@ -114,7 +114,7 @@ class Api::V1::PricingServiceTest < ActiveSupport::TestCase
 
       assert_not service.valid?
       assert_equal :bad_gateway, service.error_status
-      assert_includes service.errors.first, "incomplete response"
+      assert_includes service.errors.first, "without price"
     end
   end
 

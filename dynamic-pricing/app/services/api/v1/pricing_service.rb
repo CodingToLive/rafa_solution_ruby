@@ -40,7 +40,7 @@ module Api::V1
 
       if rates.blank?
         @error_status = :bad_gateway
-        errors << 'Pricing service returned an incomplete response'
+        errors << 'Pricing service returned no rates'
         return
       end
 
@@ -50,9 +50,15 @@ module Api::V1
         r['room'] == @room
       }
 
-      if !rate_entry&.key?('rate')
+      if !rate_entry
         @error_status = :bad_gateway
-        errors << 'Pricing service returned an incomplete response'
+        errors << "Pricing service did not return the requested combination"
+        return
+      end
+
+      if !rate_entry.key?('rate')
+        @error_status = :bad_gateway
+        errors << 'Pricing service returned rate entry without price'
         return
       end
 
