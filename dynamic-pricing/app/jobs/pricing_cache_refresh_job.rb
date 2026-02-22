@@ -10,9 +10,7 @@ class PricingCacheRefreshJob < ApplicationJob
     start_time = Time.current
     AppLog.info(source: "PricingCacheRefreshJob", event: "start")
 
-    # 1 upstream batch call
-    current_quota = ::PricingUpstreamBudget.consume!(amount: 1)
-    AppLog.info(source: "PricingCacheRefreshJob", event: "quota_consumed", usage_today: current_quota)
+    ::PricingUpstreamBudget.check_quota!
 
     response = RateApiClient.get_all_rates
 
@@ -20,6 +18,9 @@ class PricingCacheRefreshJob < ApplicationJob
       AppLog.warn(source: "PricingCacheRefreshJob", event: "upstream_error", error: safe_error(response))
       return
     end
+
+    current_quota = ::PricingUpstreamBudget.consume!(amount: 1)
+    AppLog.info(source: "PricingCacheRefreshJob", event: "quota_consumed", usage_today: current_quota)
 
     parsed = response.parsed_response
     rates  = parsed.is_a?(Hash) ? parsed["rates"] : nil

@@ -16,6 +16,15 @@ module Api::V1
       end
 
       AppLog.info(source: "PricingService", event: "cache_miss", key: key)
+
+      begin
+        PricingUpstreamBudget.check_quota!
+      rescue PricingUpstreamBudget::QuotaExceeded => e
+        @error_status = :service_unavailable
+        errors << "Upstream API quota exhausted"
+        return
+      end
+
       response = RateApiClient.get_rate(period: @period, hotel: @hotel, room: @room)
 
       unless response.success?
@@ -23,6 +32,8 @@ module Api::V1
         errors << (response.parsed_response['error'] rescue 'Pricing service returned an error')
         return
       end
+
+      PricingUpstreamBudget.consume!(amount: 1)
 
       parsed = response.parsed_response
       rates = parsed['rates']

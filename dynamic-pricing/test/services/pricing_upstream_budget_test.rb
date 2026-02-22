@@ -27,6 +27,20 @@ class PricingUpstreamBudgetTest < ActiveSupport::TestCase
     end
   end
 
+  test "check_quota passes when under limit" do
+    PricingUpstreamBudget.consume!
+    assert_nothing_raised { PricingUpstreamBudget.check_quota! }
+  end
+
+  test "check_quota raises when at limit" do
+    key = PricingUpstreamBudget.key_for_today
+    Rails.cache.write(key, PricingUpstreamBudget::LIMIT, expires_in: 24.hours)
+
+    assert_raises(PricingUpstreamBudget::QuotaExceeded) do
+      PricingUpstreamBudget.check_quota!
+    end
+  end
+
   test "counter is decremented after exceeding limit" do
     key = PricingUpstreamBudget.key_for_today
     Rails.cache.write(key, PricingUpstreamBudget::LIMIT, expires_in: 24.hours)

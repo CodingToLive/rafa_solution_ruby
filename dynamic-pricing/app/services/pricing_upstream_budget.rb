@@ -7,7 +7,15 @@ module PricingUpstreamBudget
     "pricing:upstream_calls:#{Date.current.iso8601}"
   end
 
-  # increments daily counter; exception if over limit
+  # read-only check; raises if already over limit
+  def self.check_quota!
+    current = Rails.cache.read(key_for_today) || 0
+    if current >= LIMIT
+      raise QuotaExceeded, "Upstream quota budget exhausted (#{current}/#{LIMIT})"
+    end
+  end
+
+  # increments daily counter; raises if over limit
   def self.consume!(amount: 1)
     key = key_for_today
 
