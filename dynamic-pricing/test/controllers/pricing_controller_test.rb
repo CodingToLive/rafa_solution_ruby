@@ -29,7 +29,7 @@ class Api::V1::PricingControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "should return error when rate API fails" do
+  test "should return 502 when rate API fails" do
     mock_response = OpenStruct.new(success?: false, parsed_response: { 'error' => 'Rate not found' })
 
     RateApiClient.stub(:get_rate, mock_response) do
@@ -39,7 +39,7 @@ class Api::V1::PricingControllerTest < ActionDispatch::IntegrationTest
         room: "SingletonRoom"
       }
 
-      assert_response :bad_request
+      assert_response :bad_gateway
       assert_equal "application/json", @response.media_type
 
       json_response = JSON.parse(@response.body)

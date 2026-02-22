@@ -19,6 +19,7 @@ module Api::V1
       response = RateApiClient.get_rate(period: @period, hotel: @hotel, room: @room)
 
       unless response.success?
+        @error_status = :bad_gateway
         errors << (response.parsed_response['error'] rescue 'Pricing service returned an error')
         return
       end
@@ -27,6 +28,7 @@ module Api::V1
       rates = parsed['rates']
 
       if rates.blank?
+        @error_status = :bad_gateway
         errors << 'Pricing service returned an incomplete response'
         return
       end
@@ -38,6 +40,7 @@ module Api::V1
       }
 
       if !rate_entry&.key?('rate')
+        @error_status = :bad_gateway
         errors << 'Pricing service returned an incomplete response'
         return
       end
@@ -46,8 +49,10 @@ module Api::V1
       Rails.cache.write(key, value, expires_in: 5.minutes)
       @result = value
     rescue Net::OpenTimeout, Net::ReadTimeout => e
+      @error_status = :gateway_timeout
       errors << "Pricing service timed out: #{e.message}"
     rescue StandardError => e
+      @error_status = :service_unavailable
       errors << "Pricing service unavailable: #{e.message}"
     end
   end
