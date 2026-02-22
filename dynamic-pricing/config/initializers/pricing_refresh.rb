@@ -4,7 +4,7 @@ Rails.application.config.after_initialize do
   Thread.new do
     loop do
       PricingCacheRefreshJob.perform_later
-      sleep 5.minutes
+      sleep 4.minutes
     rescue => e
       AppLog.error(source: "PricingRefresh", event: "thread_error", error_class: e.class.name, error: e.message)
       sleep 10.seconds

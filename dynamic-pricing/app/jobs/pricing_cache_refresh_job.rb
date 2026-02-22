@@ -2,6 +2,7 @@ class PricingCacheRefreshJob < ApplicationJob
   include PricingConstants
 
   queue_as :default
+  retry_on StandardError, wait: 30.seconds, attempts: 3
 
   TTL = 5.minutes
 

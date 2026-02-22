@@ -15,13 +15,13 @@ class RateApiClient
         }
       ]
     }.to_json
-    self.post("/pricing", body: params, timeout: 10)
+    self.post("/pricing", body: params, timeout: 5)
   end
 
   def self.get_all_rates
     params = {
       attributes: ALL_COMBINATIONS
     }.to_json
-    self.post("/pricing", body: params, timeout: 10)
+    self.post("/pricing", body: params, timeout: 30)
   end
 end
