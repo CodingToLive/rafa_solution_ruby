@@ -113,6 +113,75 @@ class Api::V1::PricingControllerTest < ActionDispatch::IntegrationTest
     assert_includes json_response["error"], "Invalid room"
   end
 
+  test "should return 504 when API times out" do
+    RateApiClient.stub(:get_rate, ->(*) { raise Net::ReadTimeout, "execution expired" }) do
+      get api_v1_pricing_url, params: {
+        period: "Summer",
+        hotel: "FloatingPointResort",
+        room: "SingletonRoom"
+      }
+
+      assert_response :gateway_timeout
+      json_response = JSON.parse(@response.body)
+      assert_includes json_response["error"], "timed out"
+    end
+  end
+
+  test "should return 502 when rate field is missing" do
+    mock_parsed = {
+      'rates' => [
+        { 'period' => 'Summer', 'hotel' => 'FloatingPointResort', 'room' => 'SingletonRoom' }
+      ]
+    }
+    mock_response = OpenStruct.new(success?: true, parsed_response: mock_parsed)
+
+    RateApiClient.stub(:get_rate, mock_response) do
+      get api_v1_pricing_url, params: {
+        period: "Summer",
+        hotel: "FloatingPointResort",
+        room: "SingletonRoom"
+      }
+
+      assert_response :bad_gateway
+      json_response = JSON.parse(@response.body)
+      assert_includes json_response["error"], "incomplete response"
+    end
+  end
+
+  test "should return 502 when rates array is empty" do
+    mock_parsed = { 'rates' => [] }
+    mock_response = OpenStruct.new(success?: true, parsed_response: mock_parsed)
+
+    RateApiClient.stub(:get_rate, mock_response) do
+      get api_v1_pricing_url, params: {
+        period: "Summer",
+        hotel: "FloatingPointResort",
+        room: "SingletonRoom"
+      }
+
+      assert_response :bad_gateway
+      json_response = JSON.parse(@response.body)
+      assert_includes json_response["error"], "incomplete response"
+    end
+  end
+
+  test "cache hit does not call API" do
+    key = PricingConstants.cache_key(period: "Summer", hotel: "FloatingPointResort", room: "SingletonRoom")
+    Rails.cache.write(key, 15000, expires_in: 5.minutes)
+
+    RateApiClient.stub(:get_rate, ->(*) { raise "API should not be called" }) do
+      get api_v1_pricing_url, params: {
+        period: "Summer",
+        hotel: "FloatingPointResort",
+        room: "SingletonRoom"
+      }
+
+      assert_response :success
+      json_response = JSON.parse(@response.body)
+      assert_equal 15000, json_response["rate"]
+    end
+  end
+
   test "should fetch cache response" do
     mock_parsed = {
       'rates' => [
