@@ -6,4 +6,8 @@ module PricingConstants
   ALL_COMBINATIONS = VALID_PERIODS.product(VALID_HOTELS, VALID_ROOMS).map { |period, hotel, room|
     { period: period, hotel: hotel, room: room }
   }.freeze
+
+  def self.cache_key(period:, hotel:, room:)
+    "pricing:rate:v1:period=#{period}:hotel=#{hotel}:room=#{room}"
+  end
 end

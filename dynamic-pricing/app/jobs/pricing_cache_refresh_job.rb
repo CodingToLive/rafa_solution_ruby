@@ -34,7 +34,7 @@ class PricingCacheRefreshJob < ApplicationJob
       next unless r.is_a?(Hash)
       next unless r.key?("rate")
 
-      key = "pricing:rate:v1:period=#{r['period']}:hotel=#{r['hotel']}:room=#{r['room']}"
+      key = PricingConstants.cache_key(period: r['period'], hotel: r['hotel'], room: r['room'])
       Rails.cache.write(key, r["rate"].to_i, expires_in: TTL)
       written += 1
     end

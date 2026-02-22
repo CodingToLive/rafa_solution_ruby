@@ -6,12 +6,8 @@ module Api::V1
       @room = room
     end
 
-    def cache_key
-      "pricing:rate:v1:period=#{@period}:hotel=#{@hotel}:room=#{@room}"
-    end
-
     def run
-      key = cache_key
+      key = PricingConstants.cache_key(period: @period, hotel: @hotel, room: @room)
       cached_value = Rails.cache.read(key)
       if cached_value
         Rails.logger.info("[PricingService] CACHE HIT for #{key}")
