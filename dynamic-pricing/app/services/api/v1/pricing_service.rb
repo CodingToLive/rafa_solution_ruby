@@ -14,12 +14,15 @@ module Api::V1
       key = cache_key
       cached_value = Rails.cache.read(key)
       if cached_value
+        Rails.logger.info("[PricingService] CACHE HIT for #{key}")
         @result = cached_value
         return
       end
+
+      Rails.logger.info("[PricingService] CACHE MISS for #{key} - calling upstream API")
       response = RateApiClient.get_rate(period: @period, hotel: @hotel, room: @room)
 
-      if !response.success?
+      unless response.success?
         errors << (response.parsed_response['error'] rescue 'Pricing service returned an error')
         return
       end
