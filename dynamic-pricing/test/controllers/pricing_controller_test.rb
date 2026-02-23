@@ -239,6 +239,22 @@ class Api::V1::PricingControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Not found", json_response["error"]
   end
 
+  test "extra params are accepted but logged" do
+    key = PricingConstants.cache_key(period: "Summer", hotel: "FloatingPointResort", room: "SingletonRoom")
+    Rails.cache.write(key, 15000, expires_in: 5.minutes)
+
+    get api_v1_pricing_url, params: {
+      period: "Summer",
+      hotel: "FloatingPointResort",
+      room: "SingletonRoom",
+      foo: "bar"
+    }
+
+    assert_response :success
+    json_response = JSON.parse(@response.body)
+    assert_equal 15000, json_response["rate"]
+  end
+
   test "unhandled exception returns 500 without stack trace" do
     Api::V1::PricingService.stub(:new, ->(*) { raise RuntimeError, "something broke" }) do
       get api_v1_pricing_url, params: {

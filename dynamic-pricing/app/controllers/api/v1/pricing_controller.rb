@@ -37,5 +37,11 @@ class Api::V1::PricingController < ApplicationController
     unless VALID_ROOMS.include?(params[:room])
       return render json: { error: "Invalid room. Must be one of: #{VALID_ROOMS.join(', ')}" }, status: :bad_request
     end
+
+    known_params = %w[period hotel room controller action format]
+    extra = params.keys - known_params
+    if extra.any?
+      AppLog.warn(source: "PricingController", event: "unknown_params", params: extra)
+    end
   end
 end
