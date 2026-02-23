@@ -144,7 +144,7 @@ class Api::V1::PricingControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :bad_gateway
       json_response = JSON.parse(@response.body)
-      assert_includes json_response["error"], "without price"
+      assert_includes json_response["error"], "invalid rate"
     end
   end
 

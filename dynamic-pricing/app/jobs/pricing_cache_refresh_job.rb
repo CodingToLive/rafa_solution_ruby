@@ -35,10 +35,12 @@ class PricingCacheRefreshJob < ApplicationJob
 
     rates.each do |r|
       next unless r.is_a?(Hash)
-      next unless r.key?("rate")
+
+      raw_rate = r["rate"]
+      next if !raw_rate.is_a?(Numeric) && !raw_rate.to_s.match?(/\A-?\d+(\.\d+)?\z/)
 
       key = PricingConstants.cache_key(period: r['period'], hotel: r['hotel'], room: r['room'])
-      Rails.cache.write(key, r["rate"].to_i, expires_in: TTL)
+      Rails.cache.write(key, raw_rate.to_f, expires_in: TTL)
       written += 1
     end
 

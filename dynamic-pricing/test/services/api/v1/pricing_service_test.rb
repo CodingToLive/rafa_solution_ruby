@@ -35,14 +35,14 @@ class Api::V1::PricingServiceTest < ActiveSupport::TestCase
       service.run
 
       assert service.valid?
-      assert_equal 15000, service.result
+      assert_equal 15000.0, service.result
 
       key = PricingConstants.cache_key(period: @period, hotel: @hotel, room: @room)
-      assert_equal 15000, Rails.cache.read(key)
+      assert_equal 15000.0, Rails.cache.read(key)
     end
   end
 
-  test "string rate is normalized to integer" do
+  test "string rate is normalized to float" do
     mock_parsed = {
       'rates' => [
         { 'period' => @period, 'hotel' => @hotel, 'room' => @room, 'rate' => '15000' }
@@ -55,8 +55,61 @@ class Api::V1::PricingServiceTest < ActiveSupport::TestCase
       service.run
 
       assert service.valid?
-      assert_equal 15000, service.result
-      assert_kind_of Integer, service.result
+      assert_equal 15000.0, service.result
+      assert_kind_of Float, service.result
+    end
+  end
+
+  test "decimal rate is preserved" do
+    mock_parsed = {
+      'rates' => [
+        { 'period' => @period, 'hotel' => @hotel, 'room' => @room, 'rate' => '150.50' }
+      ]
+    }
+    mock_response = OpenStruct.new(success?: true, parsed_response: mock_parsed)
+
+    RateApiClient.stub(:get_rate, mock_response) do
+      service = Api::V1::PricingService.new(period: @period, hotel: @hotel, room: @room)
+      service.run
+
+      assert service.valid?
+      assert_equal 150.5, service.result
+    end
+  end
+
+  test "null rate returns bad_gateway" do
+    mock_parsed = {
+      'rates' => [
+        { 'period' => @period, 'hotel' => @hotel, 'room' => @room, 'rate' => nil }
+      ]
+    }
+    mock_response = OpenStruct.new(success?: true, parsed_response: mock_parsed)
+
+    RateApiClient.stub(:get_rate, mock_response) do
+      service = Api::V1::PricingService.new(period: @period, hotel: @hotel, room: @room)
+      service.run
+
+      assert_not service.valid?
+      assert_equal :bad_gateway, service.error_status
+      assert_includes service.errors.first, "invalid rate"
+    end
+  end
+
+  test "non-numeric rate returns bad_gateway" do
+    mock_parsed = {
+      'rates' => [
+        { 'period' => @period, 'hotel' => @hotel, 'room' => @room, 'rate' => 'N/A' }
+      ]
+    }
+    mock_response = OpenStruct.new(success?: true, parsed_response: mock_parsed)
+
+    RateApiClient.stub(:get_rate, mock_response) do
+      service = Api::V1::PricingService.new(period: @period, hotel: @hotel, room: @room)
+      service.run
+
+      assert_not service.valid?
+      assert_equal :bad_gateway, service.error_status
+      assert_includes service.errors.first, "invalid rate"
     end
   end
 
@@ -114,7 +167,7 @@ class Api::V1::PricingServiceTest < ActiveSupport::TestCase
 
       assert_not service.valid?
       assert_equal :bad_gateway, service.error_status
-      assert_includes service.errors.first, "without price"
+      assert_includes service.errors.first, "invalid rate"
     end
   end
 

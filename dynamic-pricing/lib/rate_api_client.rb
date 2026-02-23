@@ -22,6 +22,6 @@ class RateApiClient
     params = {
       attributes: ALL_COMBINATIONS
     }.to_json
-    self.post("/pricing", body: params, timeout: 30)
+    self.post("/pricing", body: params, timeout: 20)
   end
 end

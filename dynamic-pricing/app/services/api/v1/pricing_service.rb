@@ -50,20 +50,22 @@ module Api::V1
         r['room'] == @room
       }
 
-      if !rate_entry
+      unless rate_entry
         @error_status = :bad_gateway
         errors << "Pricing service did not return the requested combination"
         return
       end
 
-      if !rate_entry.key?('rate')
+      raw_rate = rate_entry['rate']
+
+      if !raw_rate.is_a?(Numeric) && !raw_rate.to_s.match?(/\A-?\d+(\.\d+)?\z/)
         @error_status = :bad_gateway
-        errors << 'Pricing service returned rate entry without price'
+        errors << 'Pricing service returned an invalid rate'
         return
       end
 
-      value = rate_entry['rate'].to_i
-      Rails.cache.write(key, value, expires_in: 5.minutes)
+      value = raw_rate.to_f
+      Rails.cache.write(key, value, expires_in: 4.minutes)
       @result = value
     rescue Net::OpenTimeout, Net::ReadTimeout => e
       @error_status = :gateway_timeout

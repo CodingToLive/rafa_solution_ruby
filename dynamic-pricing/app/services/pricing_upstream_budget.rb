@@ -19,7 +19,9 @@ module PricingUpstreamBudget
   def self.consume!(amount: 1)
     key = key_for_today
 
-    new_val = Rails.cache.increment(key, amount, expires_in: 24.hours)
+    expires_in = (Time.current.end_of_day - Time.current) + 1.hour
+
+    new_val = Rails.cache.increment(key, amount, expires_in: expires_in, unless_exists: true)
 
     # Some cache stores return nil for increment (e.g., NullStore/FileStore)
     if new_val.nil?

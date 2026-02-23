@@ -39,7 +39,7 @@ class PricingCacheRefreshJobTest < ActiveJob::TestCase
     assert_nil Rails.cache.read(missing_key)
   end
 
-  test "normalizes string rate to integer" do
+  test "normalizes string rate to float" do
     rates = [
       { 'period' => 'Summer', 'hotel' => 'FloatingPointResort', 'room' => 'SingletonRoom', 'rate' => '15000' }
     ]
@@ -52,8 +52,36 @@ class PricingCacheRefreshJobTest < ActiveJob::TestCase
     key = PricingConstants.cache_key(period: 'Summer', hotel: 'FloatingPointResort', room: 'SingletonRoom')
     cached = Rails.cache.read(key)
 
-    assert_equal 15000, cached
-    assert_kind_of Integer, cached
+    assert_equal 15000.0, cached
+    assert_kind_of Float, cached
+  end
+
+  test "skips null rate value" do
+    rates = [
+      { 'period' => 'Summer', 'hotel' => 'FloatingPointResort', 'room' => 'SingletonRoom', 'rate' => nil }
+    ]
+    mock_response = OpenStruct.new(success?: true, parsed_response: { 'rates' => rates })
+
+    RateApiClient.stub(:get_all_rates, mock_response) do
+      PricingCacheRefreshJob.perform_now
+    end
+
+    key = PricingConstants.cache_key(period: 'Summer', hotel: 'FloatingPointResort', room: 'SingletonRoom')
+    assert_nil Rails.cache.read(key)
+  end
+
+  test "skips non-numeric rate value" do
+    rates = [
+      { 'period' => 'Summer', 'hotel' => 'FloatingPointResort', 'room' => 'SingletonRoom', 'rate' => 'N/A' }
+    ]
+    mock_response = OpenStruct.new(success?: true, parsed_response: { 'rates' => rates })
+
+    RateApiClient.stub(:get_all_rates, mock_response) do
+      PricingCacheRefreshJob.perform_now
+    end
+
+    key = PricingConstants.cache_key(period: 'Summer', hotel: 'FloatingPointResort', room: 'SingletonRoom')
+    assert_nil Rails.cache.read(key)
   end
 
   test "API error enqueues retry and does not cache anything" do
