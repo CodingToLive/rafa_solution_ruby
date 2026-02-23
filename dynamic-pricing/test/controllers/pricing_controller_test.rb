@@ -238,4 +238,20 @@ class Api::V1::PricingControllerTest < ActionDispatch::IntegrationTest
     json_response = JSON.parse(@response.body)
     assert_equal "Not found", json_response["error"]
   end
+
+  test "unhandled exception returns 500 without stack trace" do
+    Api::V1::PricingService.stub(:new, ->(*) { raise RuntimeError, "something broke" }) do
+      get api_v1_pricing_url, params: {
+        period: "Summer",
+        hotel: "FloatingPointResort",
+        room: "SingletonRoom"
+      }
+
+      assert_response :internal_server_error
+      json_response = JSON.parse(@response.body)
+      assert_equal "Internal server error", json_response["error"]
+      assert_nil json_response["exception"]
+      assert_nil json_response["traces"]
+    end
+  end
 end
