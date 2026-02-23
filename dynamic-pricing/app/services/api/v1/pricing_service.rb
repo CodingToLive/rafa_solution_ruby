@@ -65,7 +65,7 @@ module Api::V1
       end
 
       value = raw_rate.to_f
-      Rails.cache.write(key, value, expires_in: 4.minutes)
+      Rails.cache.write(key, value, expires_in: 5.minutes)
       @result = value
     rescue Net::OpenTimeout, Net::ReadTimeout => e
       @error_status = :gateway_timeout

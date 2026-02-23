@@ -50,6 +50,8 @@ Client  -->  PricingController  -->  PricingService  -->  Rails.cache (memory_st
 2. **Cache miss** - check quota, call upstream API, validate response, cache result, return rate
 3. **Background refresh** - every 4 minutes, a background job fetches all 36 combinations in a single API call and populates the cache
 
+In practice, cache misses should be rare due to proactive refresh. The per-request fallback primarily handles cold starts or partial refresh failures.
+
 ### Why This Design
 
 The upstream API is expensive and rate-limited (~1000 calls/day). With only 36 valid combinations, we can:
@@ -83,7 +85,7 @@ The upstream API allows ~1000 calls/day. Enforce a **950 call/day budget** as a 
 - **`check_quota!`** - read-only check before making an API call
 - **`consume!`** - atomic increment **after** a successful API response
 - Failed API calls (500s, timeouts) do **not** count against the budget
-- Budget resets daily (key expires at end of day + 1 hour buffer)
+- Budget resets daily (key expires at end of day + 1 hour buffer). The quota key uses `Date.current` in the configured Rails time zone. In production, this should align with the upstream provider's quota reset timezone (typically UTC).
 
 With a 4-minute refresh interval: ~360 calls/day for the background job, leaving ~590 for individual cache-miss requests.
 
@@ -224,6 +226,10 @@ ruby -Itest -e "Dir.glob('test/**/*_test.rb').each { |f| require_relative f }"
 | `health_controller_test.rb` | 2 | Empty cache, partial cache coverage |
 
 All tests use mocks at the `RateApiClient` boundary - no Docker or network calls required.
+
+### Integration Tests?
+
+The upstream rate-api is unreliable, which would make integration tests non-deterministic. In production, we would add a smoke test suite that runs post-deploy against the real stack.
 
 ## Project Structure
 
