@@ -208,4 +208,34 @@ class Api::V1::PricingControllerTest < ActionDispatch::IntegrationTest
       assert_equal 15000, cache_value
     end
   end
+
+  test "POST returns 405 method not allowed" do
+    post api_v1_pricing_url
+
+    assert_response :method_not_allowed
+    json_response = JSON.parse(@response.body)
+    assert_equal "Method not allowed", json_response["error"]
+  end
+
+  test "PUT returns 405 method not allowed" do
+    put api_v1_pricing_url
+
+    assert_response :method_not_allowed
+    json_response = JSON.parse(@response.body)
+    assert_equal "Method not allowed", json_response["error"]
+  end
+
+  test "DELETE returns 405 method not allowed" do
+    delete api_v1_pricing_url
+
+    assert_response :method_not_allowed
+  end
+
+  test "unknown route returns 404" do
+    get "/api/v2/pricing"
+
+    assert_response :not_found
+    json_response = JSON.parse(@response.body)
+    assert_equal "Not found", json_response["error"]
+  end
 end

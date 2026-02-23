@@ -5,4 +5,8 @@ Rails.application.routes.draw do
       get '/health', to: 'health#index'
     end
   end
+
+  match '/api/v1/pricing', to: 'application#method_not_allowed', via: :all
+  match '/api/v1/health', to: 'application#method_not_allowed', via: :all
+  match '*unmatched', to: 'application#not_found', via: :all
 end

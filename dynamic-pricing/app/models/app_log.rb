@@ -12,6 +12,6 @@ module AppLog
   end
 
   def self.format(source:, event:, **extra)
-    { source: source, event: event, **extra }.to_json
+    { timestamp: Time.current.iso8601(3), source: source, event: event, **extra }.to_json
   end
 end
