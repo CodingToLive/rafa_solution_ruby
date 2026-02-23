@@ -5,7 +5,7 @@ A Rails API that acts as a caching proxy for an upstream hotel pricing service. 
 ## Quick Start
 
 ```bash
-docker compose up
+docker compose up --build
 ```
 
 - **Our API**: http://localhost:3000/api/v1/pricing
