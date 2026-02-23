@@ -199,6 +199,21 @@ All incoming parameters are validated against a **strict whitelist** before reac
 - Extra/unknown parameters -> accepted but logged as a warning (helps identify misconfigured clients)
 - SQL injection, XSS, etc. -> impossible (whitelist rejects anything that's not an exact match)
 
+## Security
+
+### Current
+
+- **No stack trace leakage** — all exceptions return clean JSON errors, details logged server-side only
+- **Input whitelist** — params validated against a strict allowlist, preventing injection attacks
+- **No user input in cache keys** — cache keys are built from validated values only
+
+### What We'd Change in Production
+
+- **Upstream API token** — currently hardcoded in `RateApiClient`. Should be moved to an environment variable (`ENV['RATE_API_TOKEN']`), secret manager or kubernetes secrets so it's not in source control
+- **Client authentication** — our API is currently open. In production, require an API key or JWT token to prevent unauthorized access and enable per-client rate limiting
+- **HTTPS** — enforce TLS in production for both inbound (client -> our API) and outbound (our API -> upstream) traffic
+- **Rate limiting** — add middleware to throttle abusive clients before they reach the application layer
+
 ## Rate Handling
 
 Rates are stored and returned as **floats** (`69000.0`). This handles:
@@ -206,7 +221,7 @@ Rates are stored and returned as **floats** (`69000.0`). This handles:
 - String rates (`"15000"` -> `15000.0`)
 - Decimal rates (`"150.50"` -> `150.5`)
 
-**Currency assumption**: Rates are assumed to be in **Japanese Yen (JPY)**, consistent with the upstream API operating in a Japanese hotel market. JPY does not use decimal subunits, so decimal values from the API are preserved but are not expected in practice. If multi-currency support is needed in the future, the response format should include a `currency` field.
+**Currency assumption**: Rates are assumed to be in **Japanese Yen (JPY)**. JPY does not use decimals, so decimal values from the API are preserved but are not expected in practice. If multi-currency support is needed in the future, the response format should include a `currency` field.
 
 ## Testing
 
